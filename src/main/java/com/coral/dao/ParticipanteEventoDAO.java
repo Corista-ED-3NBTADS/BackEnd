@@ -3,7 +3,6 @@ package com.coral.dao;
 
 import com.coral.model.ParticipanteEvento;
 import com.coral.model.ParticipanteStatus;
-import com.coral.model.ParticipanteStatus;
 import com.coral.util.DB;
 import java.sql.*;
 import java.util.*;

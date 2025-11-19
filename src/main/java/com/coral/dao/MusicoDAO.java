@@ -46,6 +46,18 @@ public class MusicoDAO {
         }
     }
 
+    public void update(Musico msc) throws SQLException {
+        String sql = "UPDATE musicos SET nome=?, instrumento=?, ativo=? WHERE id=?";
+        try (Connection c = DB.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, msc.getNome());
+            ps.setString(2, msc.getInstrumento());
+            ps.setBoolean(3, msc.isAtivo());
+            ps.setInt(4, msc.getId());
+            ps.executeUpdate();
+        }
+    }
+
     public Musico findById(int id) throws SQLException {
         Musico ms = null;
         String sql = "SELECT id,nome,tipo_voz,ativo FROM coristas WHERE id = ?";

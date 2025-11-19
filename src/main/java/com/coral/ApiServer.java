@@ -97,6 +97,16 @@ public class ApiServer {
             CORISTA_DAO.delete(id);
             ctx.status(204);
         });
+
+        app.put("/api/coristas/{id}", ctx -> {
+            int id = Integer.parseInt(ctx.pathParam("id"));
+            Corista cvo = GSON.fromJson(ctx.body(), Corista.class);
+            cvo.setId(id);
+            CORISTA_DAO.update(cvo);
+
+            ctx.status(200).result("Corista atualizado com sucesso");
+        });
+
         app.get("/api/coristas/{id}", ctx -> {
             int id = Integer.parseInt(ctx.pathParam("id"));
             Corista corista = CORISTA_DAO.findById(id);
@@ -121,6 +131,15 @@ public class ApiServer {
             MUSICO_DAO.delete(id);
             ctx.status(204);
         });
+
+        app.put("/api/musicos/{id}", ctx -> {
+            int id = Integer.parseInt(ctx.pathParam("id"));
+            Musico mvo = GSON.fromJson(ctx.body(), Musico.class);
+            mvo.setId(id);
+            MUSICO_DAO.update(mvo);
+            ctx.status(200).result("Músico atualizado com sucesso");
+        });
+
         app.get("/api/musicos/{id}", ctx -> {
             int id = Integer.parseInt(ctx.pathParam("id"));
             Musico musico = MUSICO_DAO.findById(id);
