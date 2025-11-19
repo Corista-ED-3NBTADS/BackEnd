@@ -1,4 +1,4 @@
-// NOVO ARQUIVO: com.coral.dao.ParticipanteEventoDAO.java
+
 package com.coral.dao;
 
 import com.coral.model.ParticipanteEvento;
