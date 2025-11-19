@@ -1,4 +1,5 @@
 package com.coral.dao;
+import com.coral.model.Corista;
 import com.coral.model.Musico;
 import com.coral.util.DB;
 import java.sql.*;
@@ -43,5 +44,27 @@ public class MusicoDAO {
             ps.setInt(1, id);
             ps.executeUpdate();
         }
+    }
+
+    public Musico findById(int id) throws SQLException {
+        Musico ms = null;
+        String sql = "SELECT id,nome,tipo_voz,ativo FROM coristas WHERE id = ?";
+
+        try (Connection c = DB.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    ms = new Musico();
+                    ms.setId(rs.getInt("id"));
+                    ms.setNome(rs.getString("nome"));
+                    ms.setInstrumento(rs.getString("instrumento"));
+                    ms.setAtivo(rs.getBoolean("ativo"));
+                }
+            }
+        }
+        return ms;
     }
 }

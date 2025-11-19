@@ -5,41 +5,43 @@ import com.coral.model.*;
 import com.coral.util.DB;
 import com.google.gson.Gson;
 import io.javalin.Javalin;
-import io.javalin.http.Handler; // Importação correta (existe)
-
+import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.List;
 import io.javalin.json.JavalinGson;
-import com.google.gson.JsonSyntaxException; // Adicionando import específico
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 public class ApiServer {
 
     private static final int PORT = 7000;
-    private static final Gson GSON = new Gson();
+    private static final Gson GSON = new GsonBuilder()
+            .setDateFormat("yyyy-MM-dd")
+            .create();
 
-
-    // Instâncias dos DAOs
     private static final CoristaDAO CORISTA_DAO = new CoristaDAO();
     private static final MusicoDAO MUSICO_DAO = new MusicoDAO();
     private static final AgendaDAO AGENDA_DAO = new AgendaDAO();
     private static final PresencaDAO PRESENCA_DAO = new PresencaDAO();
+    private static final ParticipanteEventoDAO PARTICIPANTE_EVENTO_DAO = new ParticipanteEventoDAO();
 
-    // Classes auxiliares (mantidas)
+
     private static class LoginRequest {
         public String username;
         public String password;
     }
+
     private static class MarcacaoPresencaRequest {
-        public int idCorista;
+        public int idParticipante;
+        public String tipo;
         public int idAgenda;
         public boolean presente;
     }
 
-    // Lógica de autenticação (mantida)
     private static boolean authenticate(String user, String pass) throws SQLException {
         String sql = "SELECT COUNT(*) FROM usuario WHERE username=? AND password=?";
         try (Connection c = DB.getConnection();
@@ -55,13 +57,7 @@ public class ApiServer {
 
     public static void main(String[] args) {
         Javalin app = Javalin.create(config -> {
-
-            // ===============================================
-            // 🚩 NOVO CÓDIGO AQUI: CONFIGURAÇÃO DO JSON MAPPER
-            // ===============================================
             config.jsonMapper(new JavalinGson());
-
-            // Configuração CORS (Corrigida anteriormente)
             config.bundledPlugins.enableCors(cors -> {
                 cors.addRule(it -> {
                     it.anyHost();
@@ -70,24 +66,15 @@ public class ApiServer {
 
         }).start(PORT);
 
-        // =========================================================
-        // 🚨 TRATAMENTO DE EXCEÇÕES (MOVIMENTADO PARA AQUI)
-        // =========================================================
-        // Exceção de Banco de Dados
         app.exception(SQLException.class, (e, ctx) -> {
-            // Agora 'ctx.status' e 'e.getMessage' devem ser resolvidos
             ctx.status(500).json("{\"error\": \"Erro de Banco de Dados: " + e.getMessage() + "\"}");
         });
 
-        // Exceção de JSON Inválido
         app.exception(JsonSyntaxException.class, (e, ctx) -> {
             ctx.status(400).json("{\"error\": \"Dados inválidos no corpo da requisição (JSON)\"}");
         });
 
 
-        // =========================================================
-        // 🔑 ROTA DE AUTENTICAÇÃO (MANTIDA)
-        // =========================================================
         app.post("/api/login", ctx -> {
             LoginRequest req = GSON.fromJson(ctx.body(), LoginRequest.class);
             if (authenticate(req.username, req.password)) {
@@ -97,9 +84,6 @@ public class ApiServer {
             }
         });
 
-        // =========================================================
-        // 🎼 ROTAS DE CORISTAS (MANTIDAS)
-        // =========================================================
         app.get("/api/coristas", ctx -> {
             ctx.json(CORISTA_DAO.findAll());
         });
@@ -115,18 +99,15 @@ public class ApiServer {
         });
         app.get("/api/coristas/{id}", ctx -> {
             int id = Integer.parseInt(ctx.pathParam("id"));
-            Corista corista = CORISTA_DAO.findById(id); // <--- CHAMA O NOVO MÉTODO
+            Corista corista = CORISTA_DAO.findById(id);
 
             if (corista != null) {
-                ctx.json(corista); // Retorna o objeto Corista em JSON
+                ctx.json(corista);
             } else {
-                ctx.status(404).result("Corista não encontrado"); // Retorna 404 se o ID não existir
+                ctx.status(404).result("Corista não encontrado");
             }
         });
 
-        // =========================================================
-        // 🎶 ROTAS DE MÚSICOS (MANTIDAS)
-        // =========================================================
         app.get("/api/musicos", ctx -> {
             ctx.json(MUSICO_DAO.findAll());
         });
@@ -140,10 +121,18 @@ public class ApiServer {
             MUSICO_DAO.delete(id);
             ctx.status(204);
         });
+        app.get("/api/musicos/{id}", ctx -> {
+            int id = Integer.parseInt(ctx.pathParam("id"));
+            Musico musico = MUSICO_DAO.findById(id);
 
-        // =========================================================
-        // 📅 ROTAS DE AGENDA (MANTIDAS)
-        // =========================================================
+            if (musico != null) {
+                ctx.json(musico);
+            } else {
+                ctx.status(404).result("Musica não encontrado");
+            }
+        });
+
+
         app.get("/api/agenda", ctx -> {
             ctx.json(AGENDA_DAO.findAll());
         });
@@ -157,15 +146,56 @@ public class ApiServer {
             AGENDA_DAO.delete(id);
             ctx.status(204);
         });
+        app.put("/api/agenda/{id}", ctx -> {
+            int id = Integer.parseInt(ctx.pathParam("id"));
+            Agenda a = GSON.fromJson(ctx.body(), Agenda.class);
+            a.setId(id);
 
-        // =========================================================
-        // ✔️ ROTAS DE PRESENÇAS (MANTIDAS)
-        // =========================================================
+            AGENDA_DAO.update(a);
+            ctx.status(200).result("Evento atualizado com sucesso");
+        });
+
+        app.get("/api/participantes/ativos", ctx -> {
+            ctx.json(PARTICIPANTE_EVENTO_DAO.findAtivosParaSelecao());
+        });
+
+
+        app.post("/api/agenda/{idAgenda}/participantes", ctx -> {
+            int idAgenda = Integer.parseInt(ctx.pathParam("idAgenda"));
+
+            Type listType = new TypeToken<List<ParticipanteEvento>>(){}.getType();
+            List<ParticipanteEvento> lista = GSON.fromJson(ctx.body(), listType);
+
+            PARTICIPANTE_EVENTO_DAO.deleteByAgenda(idAgenda);
+
+
+            for (ParticipanteEvento pe : lista) {
+                pe.setIdAgenda(idAgenda);
+                PARTICIPANTE_EVENTO_DAO.insert(pe);
+            }
+
+            ctx.status(200).result("Lista de participantes envolvidos atualizada.");
+        });
+
+
         app.post("/api/presencas/marcar", ctx -> {
+
             MarcacaoPresencaRequest req = GSON.fromJson(ctx.body(), MarcacaoPresencaRequest.class);
-            PRESENCA_DAO.marcarPresenca(req.idCorista, req.idAgenda, req.presente);
+
+            PRESENCA_DAO.marcarPresenca(
+                    req.idParticipante,
+                    req.tipo.toUpperCase(),
+                    req.idAgenda,
+                    req.presente
+            );
             ctx.result("Presença marcada/atualizada com sucesso!");
         });
+
+        app.get("/api/presencas/checklist/{idAgenda}", ctx -> {
+            int idAgenda = Integer.parseInt(ctx.pathParam("idAgenda"));
+            ctx.json(PRESENCA_DAO.findParticipantesChecklist(idAgenda));
+        });
+
 
 
         System.out.println("Servidor Javalin iniciado na porta: " + PORT);

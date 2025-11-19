@@ -42,4 +42,18 @@ public class AgendaDAO {
             ps.executeUpdate();
         }
     }
+
+    public void update(Agenda a) throws SQLException {
+        String sql = "UPDATE agenda_apresentacoes SET data=?, local=?, descricao=? WHERE id=?";
+        try (Connection c = DB.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setDate(1, a.getData());
+            ps.setString(2, a.getLocal());
+            ps.setString(3, a.getDescricao());
+            ps.setInt(4, a.getId());
+            ps.executeUpdate();
+        }
+    }
+
+
 }
