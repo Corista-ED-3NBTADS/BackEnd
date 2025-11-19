@@ -54,4 +54,27 @@ public class CoristaDAO {
             ps.executeUpdate();
         }
     }
+    public Corista findById(int id) throws SQLException {
+        Corista cr = null;
+        // Seleciona todos os campos de um corista específico
+        String sql = "SELECT id,nome,tipo_voz,ativo FROM coristas WHERE id = ?";
+
+        try (Connection c = DB.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // Mapeia o resultado para o objeto Corista
+                    cr = new Corista();
+                    cr.setId(rs.getInt("id"));
+                    cr.setNome(rs.getString("nome"));
+                    cr.setTipoVoz(rs.getString("tipo_voz"));
+                    cr.setAtivo(rs.getBoolean("ativo"));
+                }
+            }
+        }
+        return cr;
+    }
 }

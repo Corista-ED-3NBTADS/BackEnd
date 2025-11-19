@@ -5,6 +5,8 @@ import java.sql.*;
 import java.util.*;
 
 public class MusicoDAO {
+
+
     public List<Musico> findAll() throws SQLException {
         List<Musico> list = new ArrayList<>();
         String sql = "SELECT id,nome,instrumento,ativo FROM musicos";
@@ -21,5 +23,25 @@ public class MusicoDAO {
             }
         }
         return list;
+    }
+
+    public void insert(Musico mvo) throws SQLException {
+        String sql = "INSERT INTO musicos (nome,instrumento,ativo) VALUES (?,?,?)";
+        try (Connection c = DB.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, mvo.getNome());
+            ps.setString(2, mvo.getInstrumento());
+            ps.setBoolean(3, mvo.isAtivo());
+            ps.executeUpdate();
+        }
+    }
+
+    public void delete(int id) throws SQLException {
+        String sql = "DELETE FROM musicos WHERE id=?";
+        try (Connection c = DB.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        }
     }
 }
